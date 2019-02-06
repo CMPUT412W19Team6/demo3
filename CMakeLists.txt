@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(demo3)
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  dynamic_reconfigure
 )
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -53,6 +54,10 @@ find_package(catkin REQUIRED COMPONENTS
 #   DEPENDENCIES
 #   std_msgs  # Or other packages containing msgs
 # )
+
+generate_dynamic_reconfigure_options(
+  cfg/Demo3.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
