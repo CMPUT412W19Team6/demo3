@@ -2,4 +2,13 @@
     <include file="$(find turtlebot_gazebo)/launch/turtlebot_world.launch">
         <arg name="world_file" default="$(find demo3)/course.world"/>
     </include>
+
+    <!-- <node pkg="joy" type="joy_node" name="joy_node"/> -->
+
+    <node pkg="demo3" type="demo3.py" name="demo3" output="screen">
+        
+    </node>
+
+    <node pkg="smach_viewer" type="smach_viewer.py" name="smach"/>
+
 </launch>

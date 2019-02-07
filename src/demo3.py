@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-import rospy, cv2, cv_bridge, numpy
+import rospy
+import cv2
+import cv_bridge
+import numpy
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from smach import State, StateMachine
@@ -9,7 +12,8 @@ import smach_ros
 # from dynamic_reconfigure.server import Server
 # from demo3.cfg import Demo3Config
 
-START = False
+START = True
+RED_VISIBLE = False
 
 
 class WaitForButton(State):
@@ -32,15 +36,15 @@ class FollowWhite(State):
         State.__init__(self, outcomes=["see_red", "exit"])
 
         self.bridge = cv_bridge.CvBridge()
-        self.image_sub = rospy.Subscriber('camera/rgb/image_raw', 
-                                        Image, self.image_callback)
+        self.image_sub = rospy.Subscriber('camera/rgb/image_raw',
+                                          Image, self.image_callback)
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop',
-                                        Twist, queue_size=1)
-        
+                                           Twist, queue_size=1)
+
         # srv = Server(FollowbotConfig, self.dr_callback)
 
         self.twist = Twist()
-        self.start = False
+        self.found_red = False
         self.cx = None
         self.cy = None
         self.w = None
@@ -49,14 +53,19 @@ class FollowWhite(State):
         self.Ki = 0
         self.dt = 1.0 / 20
         self.linear_vel = 0.2
-    
+
     def image_callback(self, msg):
-        image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
+        global RED_VISIBLE
+
+        image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        lower_yellow = numpy.array([ 10,  10,  10])
-        upper_yellow = numpy.array([255, 255, 250])
-        mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
-        
+        lower_white = numpy.array([0,  0,  80])
+        upper_white = numpy.array([360, 15, 170])
+        lower_red = numpy.array([0, 51, 80])
+        upper_red = numpy.array([0, 256, 225])
+        mask = cv2.inRange(hsv, lower_white, upper_white)
+        mask_red = cv2.inRange(hsv, lower_red, upper_red)
+
         h, w, d = image.shape
         self.w = w
         search_top = 3*h/4
@@ -69,11 +78,19 @@ class FollowWhite(State):
             cy = int(M['m01']/M['m00'])
             self.cx = cx
             self.cy = cy
-            cv2.circle(image, (cx, cy), 20, (0,0,255), -1)
-        
+            cv2.circle(image, (cx, cy), 20, (0, 0, 255), -1)
+
+        mask_red[0:search_top, 0:w] = 0
+        mask_red[search_bot:h, 0:w] = 0
+        M_red = cv2.moments(mask_red)
+        if M_red['m00'] > 0:
+            self.found_red = True
+        else:
+            self.found_red = False
+            RED_VISIBLE = False
         cv2.imshow("window", image)
         cv2.waitKey(3)
-    
+
     def dr_callback(self, config, level):
         self.Kp = config["Kp"]
         self.Kd = config["Kd"]
@@ -83,11 +100,14 @@ class FollowWhite(State):
         return config
 
     def execute(self, userdata):
+        global RED_VISIBLE
         previous_error = 0
         integral = 0
         sleep_duration = rospy.Duration(self.dt, 0)
 
         while not rospy.is_shutdown() and START:
+            if self.found_red and not RED_VISIBLE:
+                break
             # BEGIN CONTROL
             if self.cx is not None and self.w is not None:
                 error = self.cx - self.w/2
@@ -95,7 +115,9 @@ class FollowWhite(State):
                 derivative = (error - previous_error) / self.dt
 
                 self.twist.linear.x = self.linear_vel
-                self.twist.angular.z = -(self.Kp * float(error) + self.Kd * derivative + self.Ki * integral)
+                self.twist.angular.z = - \
+                    (self.Kp * float(error) + self.Kd *
+                     derivative + self.Ki * integral)
                 self.cmd_vel_pub.publish(self.twist)
 
                 previous_error = error
@@ -104,6 +126,9 @@ class FollowWhite(State):
             # END CONTROL
         if not START:
             return "exit"
+        if self.found_red:
+            print("??????", RED_VISIBLE)
+            return "see_red"
 
 
 class StopAtRed(State):
@@ -111,7 +136,13 @@ class StopAtRed(State):
         State.__init__(self, outcomes=["time_out", "exit"])
 
     def execute(self, userdata):
-        pass
+        global RED_VISIBLE
+        RED_VISIBLE = True
+        rospy.sleep(rospy.Duration(2))
+        print("sleep is done, I should be moving now")
+        if not START:
+            return "exit"
+        return "time_out"
 
 
 def joy_callback(msg):
