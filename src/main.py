@@ -9,8 +9,8 @@ from geometry_msgs.msg import Twist
 from smach import State, StateMachine
 from sensor_msgs.msg import Joy
 import smach_ros
-# from dynamic_reconfigure.server import Server
-# from demo3.cfg import Demo3Config
+from dynamic_reconfigure.server import Server
+from demo3.cfg import Demo3Config
 
 START = True
 RED_VISIBLE = False
@@ -41,7 +41,7 @@ class FollowWhite(State):
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop',
                                            Twist, queue_size=1)
 
-        # srv = Server(Demo3Config, self.dr_callback)
+        srv = Server(Demo3Config, self.dr_callback)
 
         self.twist = Twist()
         self.found_red = False
@@ -54,6 +54,22 @@ class FollowWhite(State):
         self.dt = 1.0 / 20
         self.linear_vel = 0.2
 
+        self.white_max_h = 250
+        self.white_max_s = 60
+        self.white_max_v = 256
+
+        self.white_min_h = 0
+        self.white_min_s = 0
+        self.white_min_v = 230
+
+        self.red_max_h = 360
+        self.red_max_s = 256
+        self.red_max_v = 225
+
+        self.red_min_h = 150
+        self.red_min_s = 150
+        self.red_min_v = 80
+
     def image_callback(self, msg):
         global RED_VISIBLE
 
@@ -62,11 +78,11 @@ class FollowWhite(State):
         hsv2 = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # lower_white = numpy.array([0,  0,  80])
         # upper_white = numpy.array([360, 15, 170])
-        lower_red = numpy.array([150, 150, 80])
-        upper_red = numpy.array([360, 256, 225])
+        lower_red = numpy.array([self.red_min_h,  self.red_min_s,  self.red_min_v])
+        upper_red = numpy.array([self.red_max_h, self.red_max_s, self.red_max_v])
 
-        lower_white = numpy.array([0,  0,  230])
-        upper_white = numpy.array([250, 60, 256])
+        lower_white = numpy.array([self.white_min_h,  self.white_min_s,  self.white_min_v])
+        upper_white = numpy.array([self.white_max_h, self.white_max_s, self.white_max_v])
         # lower_red = numpy.array([300, 94, 30])
         # upper_red = numpy.array([360, 256, 256])
         mask = cv2.inRange(hsv, lower_white, upper_white)
@@ -108,6 +124,22 @@ class FollowWhite(State):
         self.Kd = config["Kd"]
         self.Ki = config["Ki"]
         self.linear_vel = config["linear_vel"]
+
+        self.white_max_h = config["white_max_h"]
+        self.white_max_s = config["white_max_s"]
+        self.white_max_v = config["white_max_v"]
+
+        self.white_min_h = config["white_min_h"]
+        self.white_min_s = config["white_min_s"]
+        self.white_min_v = config["white_min_v"]
+
+        self.red_max_h = config["red_max_h"]
+        self.red_max_s = config["red_max_s"]
+        self.red_max_v = config["red_max_v"]
+
+        self.red_min_h = config["red_min_h"]
+        self.red_min_s = config["red_min_s"]
+        self.red_min_v = config["red_min_v"]
 
         return config
 
