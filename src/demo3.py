@@ -62,13 +62,13 @@ class FollowWhite(State):
         hsv2 = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # lower_white = numpy.array([0,  0,  80])
         # upper_white = numpy.array([360, 15, 170])
-        # lower_red = numpy.array([0, 51, 80])
-        # upper_red = numpy.array([0, 256, 225])
+        lower_red = numpy.array([150, 150, 80])
+        upper_red = numpy.array([360, 256, 225])
 
         lower_white = numpy.array([0,  0,  230])
         upper_white = numpy.array([250, 60, 256])
-        lower_red = numpy.array([300, 94, 30])
-        upper_red = numpy.array([360, 256, 256])
+        # lower_red = numpy.array([300, 94, 30])
+        # upper_red = numpy.array([360, 256, 256])
         mask = cv2.inRange(hsv, lower_white, upper_white)
         mask_red = cv2.inRange(hsv2, lower_red, upper_red)
 
@@ -76,7 +76,7 @@ class FollowWhite(State):
         self.w = w
         search_top = 3*h/4
         search_bot = 3*h/4 + 20
-        cv2.imshow("window", mask)
+        # cv2.imshow("window", mask)
         mask[0:search_top, 0:w] = 0
         mask[search_bot:h, 0:w] = 0
         M = cv2.moments(mask)
@@ -87,7 +87,7 @@ class FollowWhite(State):
             self.cy = cy
             cv2.circle(image, (cx, cy), 20, (0, 0, 255), -1)
 
-        cv2.imshow("window", mask)
+        cv2.imshow("window", mask_red)
         mask_red[0:search_top, 0:w] = 0
         mask_red[search_bot:h, 0:w] = 0
         M_red = cv2.moments(mask_red)
@@ -100,7 +100,7 @@ class FollowWhite(State):
         else:
             self.found_red = False
             RED_VISIBLE = False
-        
+
         cv2.waitKey(3)
 
     def dr_callback(self, config, level):
