@@ -1,0 +1,10 @@
+<launch>
+    <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
+        
+    </include>
+    <!-- <node pkg="joy" type="joy_node" name="joy_node"/> -->
+
+    <include file="$(find opencv_apps)/launch/hsv_color_filter.launch">
+        <remap from="/camera/rgb/image_raw" to="/image"/>
+    </include>
+</launch>
