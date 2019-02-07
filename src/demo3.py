@@ -48,7 +48,7 @@ class FollowWhite(State):
         self.cx = None
         self.cy = None
         self.w = None
-        self.Kp = 1.0 / 1500.0
+        self.Kp = 1.0 / 500.0
         self.Kd = 1.0 / 1000.0
         self.Ki = 0
         self.dt = 1.0 / 20
@@ -59,6 +59,7 @@ class FollowWhite(State):
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        hsv2 = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # lower_white = numpy.array([0,  0,  80])
         # upper_white = numpy.array([360, 15, 170])
         # lower_red = numpy.array([0, 51, 80])
@@ -66,15 +67,16 @@ class FollowWhite(State):
 
         lower_white = numpy.array([0,  0,  230])
         upper_white = numpy.array([250, 60, 256])
-        lower_red = numpy.array([330, 117, 135])
-        upper_red = numpy.array([360, 256, 225])
+        lower_red = numpy.array([300, 94, 30])
+        upper_red = numpy.array([360, 256, 256])
         mask = cv2.inRange(hsv, lower_white, upper_white)
-        mask_red = cv2.inRange(hsv, lower_red, upper_red)
+        mask_red = cv2.inRange(hsv2, lower_red, upper_red)
 
         h, w, d = image.shape
         self.w = w
         search_top = 3*h/4
         search_bot = 3*h/4 + 20
+        cv2.imshow("window", mask)
         mask[0:search_top, 0:w] = 0
         mask[search_bot:h, 0:w] = 0
         M = cv2.moments(mask)
@@ -85,15 +87,20 @@ class FollowWhite(State):
             self.cy = cy
             cv2.circle(image, (cx, cy), 20, (0, 0, 255), -1)
 
+        cv2.imshow("window", mask)
         mask_red[0:search_top, 0:w] = 0
         mask_red[search_bot:h, 0:w] = 0
         M_red = cv2.moments(mask_red)
         if M_red['m00'] > 0:
+            print("?????", "found red")
             self.found_red = True
+            cx_red = int(M_red['m10']/M_red['m00'])
+            cy_red = int(M_red['m01']/M_red['m00'])
+            cv2.circle(image, (cx, cy), 20, (0, 0, 205), -1)
         else:
             self.found_red = False
             RED_VISIBLE = False
-        cv2.imshow("window", mask)
+        
         cv2.waitKey(3)
 
     def dr_callback(self, config, level):
