@@ -41,7 +41,7 @@ class FollowWhite(State):
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop',
                                            Twist, queue_size=1)
 
-        # srv = Server(FollowbotConfig, self.dr_callback)
+        # srv = Server(Demo3Config, self.dr_callback)
 
         self.twist = Twist()
         self.found_red = False
@@ -59,10 +59,15 @@ class FollowWhite(State):
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        lower_white = numpy.array([0,  0,  80])
-        upper_white = numpy.array([360, 15, 170])
-        lower_red = numpy.array([0, 51, 80])
-        upper_red = numpy.array([0, 256, 225])
+        # lower_white = numpy.array([0,  0,  80])
+        # upper_white = numpy.array([360, 15, 170])
+        # lower_red = numpy.array([0, 51, 80])
+        # upper_red = numpy.array([0, 256, 225])
+
+        lower_white = numpy.array([0,  0,  230])
+        upper_white = numpy.array([250, 60, 256])
+        lower_red = numpy.array([330, 117, 135])
+        upper_red = numpy.array([360, 256, 225])
         mask = cv2.inRange(hsv, lower_white, upper_white)
         mask_red = cv2.inRange(hsv, lower_red, upper_red)
 
@@ -88,7 +93,7 @@ class FollowWhite(State):
         else:
             self.found_red = False
             RED_VISIBLE = False
-        cv2.imshow("window", image)
+        cv2.imshow("window", mask)
         cv2.waitKey(3)
 
     def dr_callback(self, config, level):
