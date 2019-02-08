@@ -7,7 +7,7 @@
         
     </include>
 
-    <!-- <node pkg="joy" type="joy_node" name="joy_node"/> -->
+    <node pkg="joy" type="joy_node" name="joy_node"/>
 
     <node pkg="demo3" type="main.py" name="demo3" output="screen">
         
